@@ -56,15 +56,19 @@ Some common rules have built-in methods already.
 Defining a rule defines a method on the grammar with the same name that returns a `Rule` object
 as defined by the block. Therefore, you can call the rule as a method to use it inside other rules.
 
-    rule :foo { `foo` }
-    rule :bar { foo & `bar` }
+```ruby
+rule :foo { `foo` }
+rule :bar { foo & `bar` }
+```
 
 Because everything's enclosed in blocks, you can refer to rules before defining them, and you can
 even define recursive rules.
 
-    rule :numlist { empty | (number & `:` & numlist) }
-    rule :number { r /0|-?[1-9]*[0-9]/ }
-    rule :empty { `[]` }
+```ruby
+rule :numlist { empty | (number & `:` & numlist) }
+rule :number { r /0|-?[1-9]*[0-9]/ }
+rule :empty { `[]` }
+```
 
 One gotcha when working with rules on their own: if you define a rule named `foo`, then calling
 `@grammar.foo` will return the rule object itself. If you want to run the rule against an input
@@ -79,16 +83,20 @@ patched into the parser pipeline.
 Most commonly, actions are used with the `Compose` parser generator to call an action with the
 matched result of another parser.
 
-    rule :foo { `foo` }
-    action :bar { |s| @string = s }
-    rule :foobar { foo >> bar }
+```ruby
+rule :foo { `foo` }
+action :bar { |s| @string = s }
+rule :foobar { foo >> bar }
+```
 
 Also useful is using actions with the `Or` parser generator to do something if a rule doesn't
 match.
 
-    rule :foo { `foo` }
-    action :explode { |s| raise "KABOOM!" }
-    rule :must_be_foo { foo | explode }
+```ruby
+rule :foo { `foo` }
+action :explode { |s| raise "KABOOM!" }
+rule :must_be_foo { foo | explode }
+```
 
 Like with rules, defining an action defines a method on the grammar of the same name that returns
 an `Action` object. To call an action in isolation, do `@grammar.<action-name>.call(string)`.
@@ -101,7 +109,9 @@ later, such as in a heredoc. Use the `capture` (or `cap`) method to assign a nam
 string, then use the `reference` (or `ref`) method to return a parser that matches the literal
 captured string.
 
-    rule :heredoc { (r(/[A-Z]+/) >> cap(:delim)) & _.* & ref(:delim) }
+```ruby
+rule :heredoc { (r(/[A-Z]+/) >> cap(:delim)) & _.* & ref(:delim) }
+```
 
 Captures and backreferences are local to the rule that uses them, so nested captures will be
 properly scoped.
@@ -111,66 +121,68 @@ properly scoped.
 Below is an example grammar for parsing JSON to illustrate rules and actions and how they work
 together.
 
-    require 'chomsky'
-    
-    class JSON < Chomsky::Grammar
-    
-      # Rules
-      rule :value { ___? < (array | object | primitive) > ___? }
-    
-      rule :array { (`[` >> push_array) & (element & (`,` & element).*)._? & `]` }
-    
-      rule :element { value >> pop_onto_array }
-    
-      rule :object { (`{` >> push_object) & (pair & (`,` & pair).*)._? & `}` }
-    
-      rule :pair { ((___? < string > ___?) & `:` & value) >> pop_onto_object }
-      
-      rule :primitive { string | number | boolean | null }
-    
-      rule :number { integer | float }
-    
-      rule :integer { r(%r{0|-?[1-9][0-9]*(?:[eE][-+]?[1-9][0-9]*)?}) >> push_int }
-    
-      rule :float { r(%r{(?:0|-?[1-9][0-9]*)\.[0-9]+(?:[eE][-+]?[1-9][0-9]*)?}) >> push_float }
-    
-      rule :string { r(%r{"(?:[^"\\]|\\.)*"}) >> push_string }
-    
-      rule :boolean { (`true` >> push_true) | (`false` >> push_false) }
-    
-      rule :null { `null` >> push_null }
-    
-      # Actions
-      
-      action :push_array { |s| @stack.push([]) }
-    
-      action :push_object { |s| @stack.push({}) }
-    
-      action :push_int { |s| @stack.push(s.to_i) }
-    
-      action :push_float { |s| @stack.push(s.to_f) }
-    
-      action :push_string { |s| @stack.push(s[1..-2]) }
-    
-      action :push_true { |s| @stack.push(true) }
-    
-      action :push_false { |s| @stack.push(false) }
-    
-      action :push_null { |s| @stack.push(nil) }
-    
-      action :pop_onto_array { |s| val, ary = @stack.pop, @stack.pop; @stack.push(ary << val) }
-    
-      action :pop_onto_object { |s| val, key, obj = @stack.pop, @stack.pop, @stack.pop; obj[key] = val; @stack.push(obj) }
-    
-      action :error { |s| raise "Invalid JSON" }
-    
-      def call string
-        @stack.clear
-        head, rest = (value | error).(string)
-        head ? @stack.pop : nil
-      end
-    
-      def initialize
-        @stack = []
-      end
-    end
+```ruby
+require 'chomsky'
+
+class JSON < Chomsky::Grammar
+
+  # Rules
+  rule :value { ___? < (array | object | primitive) > ___? }
+
+  rule :array { (`[` >> push_array) & (element & (`,` & element).*)._? & `]` }
+
+  rule :element { value >> pop_onto_array }
+
+  rule :object { (`{` >> push_object) & (pair & (`,` & pair).*)._? & `}` }
+
+  rule :pair { ((___? < string > ___?) & `:` & value) >> pop_onto_object }
+  
+  rule :primitive { string | number | boolean | null }
+
+  rule :number { integer | float }
+
+  rule :integer { r(%r{0|-?[1-9][0-9]*(?:[eE][-+]?[1-9][0-9]*)?}) >> push_int }
+
+  rule :float { r(%r{(?:0|-?[1-9][0-9]*)\.[0-9]+(?:[eE][-+]?[1-9][0-9]*)?}) >> push_float }
+
+  rule :string { r(%r{"(?:[^"\\]|\\.)*"}) >> push_string }
+
+  rule :boolean { (`true` >> push_true) | (`false` >> push_false) }
+
+  rule :null { `null` >> push_null }
+
+  # Actions
+  
+  action :push_array { |s| @stack.push([]) }
+
+  action :push_object { |s| @stack.push({}) }
+
+  action :push_int { |s| @stack.push(s.to_i) }
+
+  action :push_float { |s| @stack.push(s.to_f) }
+
+  action :push_string { |s| @stack.push(s[1..-2]) }
+
+  action :push_true { |s| @stack.push(true) }
+
+  action :push_false { |s| @stack.push(false) }
+
+  action :push_null { |s| @stack.push(nil) }
+
+  action :pop_onto_array { |s| val, ary = @stack.pop, @stack.pop; @stack.push(ary << val) }
+
+  action :pop_onto_object { |s| val, key, obj = @stack.pop, @stack.pop, @stack.pop; obj[key] = val; @stack.push(obj) }
+
+  action :error { |s| raise "Invalid JSON" }
+
+  def call string
+    @stack.clear
+    head, rest = (value | error).(string)
+    head ? @stack.pop : nil
+  end
+
+  def initialize
+    @stack = []
+  end
+end
+```
