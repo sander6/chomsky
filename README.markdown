@@ -43,8 +43,12 @@ common parsing constructs.
     * `foo[n,m]` : matches between `n` and `m` occurances of rule `foo`
   * skipping : `foo > bar` matches rule `foo` followed by `bar`, but ignores `bar`'s output;
     similarly `foo < bar` is equal to `foo & bar` yet discarding `foo`'s output.
-  * composition : ` foo >> bar ` matches if rule `foo` matches, and rule `bar` matches the
+  * composition : `foo >> bar` matches if rule `foo` matches, and rule `bar` matches the
     output of `foo`
+  * side effects : `foo >= bar` matches rule `foo` and sends the matching portion to `bar`, but
+    ultimately returns `foo`'s return value. The `>=` construct is mostly used to combine rules
+    and actions, to perform some side effect whenever a rule matches but not otherwise interfere
+    with the parsing pipeline.
 
 Some common rules have built-in methods already.
 
@@ -76,16 +80,26 @@ string, you must do `@grammar.foo.call(string)` instead of `@grammar.foo(string)
 
 ### Actions
 
-Actions are defined similarly using `action :name { |string| expression }`. Actions are types
-of parsers that never fail and never consume any input. You can think of them as side-effects
-patched into the parser pipeline.
+Actions are defined similarly using `action :name { |string| expression }`. Actions are just code
+blocks that run given the output of the previous parser in the pipeline. Depending on how they're
+composed with the parsers around them, actions can be used to perform a number of different tasks.
 
-Most commonly, actions are used with the `Compose` parser generator to call an action with the
+Most commonly, actions are used with the `Bypass` parser generator to call an action with the
 matched result of another parser.
 
 ```ruby
 rule :foo { `foo` }
 action :bar { |s| @string = s }
+rule :foobar { foo >= bar }
+```
+
+Using the `Compose` generator, you can add string manipulation filters. In the following example,
+the rule `foo` matches the literal, lowercase string `"foo"`, but using the `bar` filter, the parsed
+result would be returned as `"FOO"`.
+
+```ruby
+rule :foo { `foo` }
+action :bar { |s| s.upcase }
 rule :foobar { foo >> bar }
 ```
 
@@ -110,7 +124,7 @@ string, then use the `reference` (or `ref`) method to return a parser that match
 captured string.
 
 ```ruby
-rule :heredoc { (r(/[A-Z]+/) >> cap(:delim)) & _.* & ref(:delim) }
+rule :heredoc { (r(/[A-Z]+/) >= cap(:delim)) & _.* & ref(:delim) }
 ```
 
 Captures and backreferences are local to the rule that uses them, so nested captures will be
@@ -129,27 +143,27 @@ class JSON < Chomsky::Grammar
   # Rules
   rule :value { ___? < (array | object | primitive) > ___? }
 
-  rule :array { (`[` >> push_array) & (element & (`,` & element).*)._? & `]` }
+  rule :array { (`[` >= push_array) & (element & (`,` & element).*)._? & `]` }
 
-  rule :element { value >> pop_onto_array }
+  rule :element { value >= pop_onto_array }
 
-  rule :object { (`{` >> push_object) & (pair & (`,` & pair).*)._? & `}` }
+  rule :object { (`{` >= push_object) & (pair & (`,` & pair).*)._? & `}` }
 
-  rule :pair { ((___? < string > ___?) & `:` & value) >> pop_onto_object }
+  rule :pair { ((___? < string > ___?) & `:` & value) >= pop_onto_object }
   
   rule :primitive { string | number | boolean | null }
 
   rule :number { integer | float }
 
-  rule :integer { r(%r{0|-?[1-9][0-9]*(?:[eE][-+]?[1-9][0-9]*)?}) >> push_int }
+  rule :integer { r(%r{0|-?[1-9][0-9]*(?:[eE][-+]?[1-9][0-9]*)?}) >= push_int }
 
-  rule :float { r(%r{(?:0|-?[1-9][0-9]*)\.[0-9]+(?:[eE][-+]?[1-9][0-9]*)?}) >> push_float }
+  rule :float { r(%r{(?:0|-?[1-9][0-9]*)\.[0-9]+(?:[eE][-+]?[1-9][0-9]*)?}) >= push_float }
 
-  rule :string { r(%r{"(?:[^"\\]|\\.)*"}) >> push_string }
+  rule :string { r(%r{"(?:[^"\\]|\\.)*"}) >= push_string }
 
-  rule :boolean { (`true` >> push_true) | (`false` >> push_false) }
+  rule :boolean { (`true` >= push_true) | (`false` >= push_false) }
 
-  rule :null { `null` >> push_null }
+  rule :null { `null` >= push_null }
 
   # Actions
   
@@ -169,9 +183,9 @@ class JSON < Chomsky::Grammar
 
   action :push_null { |s| @stack.push(nil) }
 
-  action :pop_onto_array { |s| val, ary = @stack.pop, @stack.pop; @stack.push(ary << val) }
+  action :pop_onto_array { |s| val, ary = @stack.pop(2); @stack.push(ary << val) }
 
-  action :pop_onto_object { |s| val, key, obj = @stack.pop, @stack.pop, @stack.pop; obj[key] = val; @stack.push(obj) }
+  action :pop_onto_object { |s| val, key, obj = @stack.pop(3); obj[key] = val; @stack.push(obj) }
 
   action :error { |s| raise "Invalid JSON" }
 
