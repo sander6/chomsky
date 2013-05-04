@@ -2,7 +2,7 @@ require 'chomsky/parser_generator'
 
 module Chomsky
   class ParserGenerator
-    class And < ParserGenerator
+    class Sequence < ParserGenerator
       def initialize left, right
         @left, @right = left, right
       end

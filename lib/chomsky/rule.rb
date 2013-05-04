@@ -11,9 +11,9 @@ module Chomsky
 
     def call string
       if parser = @grammar.instance_exec(&@pg)
-        tok, rest = parser.(string)
-        if tok
-          [tok, rest]
+        head, rest = parser.(string)
+        if head
+          [head, rest]
         else
           [nil, string]
         end

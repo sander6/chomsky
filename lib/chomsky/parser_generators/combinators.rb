@@ -12,7 +12,7 @@ module Chomsky
       end
 
       def & other
-        And.(self.to_pg, other.to_pg)
+        Sequence.(self.to_pg, other.to_pg)
       end
 
       def | other

@@ -2,7 +2,7 @@ require 'chomsky/parser_generators/combinators'
 
 module Chomsky
   class ParserGenerator
-    autoload :And,            "chomsky/parser_generators/and"
+    autoload :Sequence,       "chomsky/parser_generators/sequence"
     autoload :Compose,        "chomsky/parser_generators/compose"
     autoload :Repeat,         "chomsky/parser_generators/repeat"
     autoload :Not,            "chomsky/parser_generators/not"

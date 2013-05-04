@@ -7,9 +7,9 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 require 'chomsky'
 
-describe Chomsky::ParserGenerator::And do
+describe Chomsky::ParserGenerator::Sequence do
   def parser
-    Chomsky::ParserGenerator::And.(Chomsky::Parser::Literal.("this "), Chomsky::Parser::Literal.("and that"))
+    Chomsky::ParserGenerator::Sequence.(Chomsky::Parser::Literal.("this "), Chomsky::Parser::Literal.("and that"))
   end
 
   it "should match the first parser followed by the second parser" do
