@@ -1,6 +1,6 @@
 Gem::Specification.new do |spec|
   spec.name         = "chomsky"
-  spec.version      = "0.1.0"
+  spec.version      = "0.1.1"
   spec.summary      = "Pure-Ruby parsing expression grammar generator"
   spec.description  = "Chomsky generates parsing expression grammars with " +
     "a nice pure-Ruby DSL, eliminating the need for secondary grammar definition " +

@@ -7,9 +7,8 @@ module Chomsky
       @action = action
     end
 
-    def call string
-      @grammar.instance_exec(string, &@action)
-      [string, ""]
+    def call value
+      @grammar.instance_exec(value, &@action)
     end
   end
 end

@@ -4,6 +4,7 @@ module Chomsky
   class ParserGenerator
     autoload :Sequence,       "chomsky/parser_generators/sequence"
     autoload :Compose,        "chomsky/parser_generators/compose"
+    autoload :Bypass,         "chomsky/parser_generators/bypass"
     autoload :Repeat,         "chomsky/parser_generators/repeat"
     autoload :Not,            "chomsky/parser_generators/not"
     autoload :Or,             "chomsky/parser_generators/or"

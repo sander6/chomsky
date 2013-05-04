@@ -63,6 +63,10 @@ module Chomsky
         Compose.(self.to_pg, other.to_pg)
       end
 
+      def >= other
+        Bypass.(self.to_pg, other.to_pg)
+      end
+
       def capture name
         captures[name] = Capture.new
       end
